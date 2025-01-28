@@ -4,23 +4,32 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class LoginController extends Controller
 {
     public function login(Request $request) {
+        // Aquí pedimos los datos al usuario que supuestamente esá logueado para validar si están en la base de datos.
         $data = $request->validate([
             'name' => 'required|max:255',
             'password' => 'required'
         ]);
 
-        
+        //
         if(Auth::attempt($data)) {
             return response()->json([
                 'success' => true,
                 'message' => 'El usuario está logueado',
+                // Aquí devuelve el usuario autenticado y le crea un token con el nombre de "token"
                 'data' => Auth::user()->createToken("token")
                 ]);
               
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario no está logueado',
+                'data' => $data
+            ]);
         }
 
     }
@@ -29,7 +38,7 @@ class LoginController extends Controller
         // Aquí pilla el token que se pone en el postman y lo pone en $token
         $token = $request->bearerToken();
         // Aquí verifica el token en la tabla personal_access_tokens
-        $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        $tokenModel = PersonalAccessToken::findToken($token);
     
         // Aquí accede al usuario con ese token
         $usuario = $tokenModel->tokenable;
@@ -48,13 +57,13 @@ class LoginController extends Controller
 
     public function logout(Request $request)
 {
-    // Obtener el token del encabezado de la solicitud
+    // Aquí pillas el token del encabezado de la solicitud
     $token = $request->bearerToken();
 
     // Comprobar si el token existe
     if ($token) {
         // Buscar el token en la base de datos
-        $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        $tokenModel = PersonalAccessToken::findToken($token);
 
         // Si encontramos el token, lo eliminamos
         if ($tokenModel) {
@@ -71,17 +80,8 @@ class LoginController extends Controller
                 'message' => 'Token no válido o no encontrado.',
             ], 401);
         }
-    } else {
-        // Si no se encontró el token en la solicitud
-        return response()->json([
-            'success' => false,
-            'message' => 'No se encontró un token en la solicitud.',
-        ], 401);
     }
 }
-
-    
-
 
     
 }
